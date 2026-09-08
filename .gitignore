@@ -1,0 +1,30 @@
+# CMake
+build/
+cmake-build-*/
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+compile_commands.json
+CTestTestfile.cmake
+_deps/
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+*.swp
+*.user
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pyw
+*.pyz
+llm_server/.venv/
+
+# LLama
+llm_server/src/ai/engine/llama.cpp/
+llm_server/src/ai/engine/llama/libllama_bridge.dylib
+*.gguf
