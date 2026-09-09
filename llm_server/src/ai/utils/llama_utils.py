@@ -41,6 +41,41 @@ def define_llama_bridge_signatures(bridge: ctypes.CDLL) -> ctypes.CDLL:
 
     bridge.llama_bridge_tokenize.restype = ctypes.c_int
 
+    bridge.llama_bridge_create_context.argtypes = [
+        ctypes.c_void_p,
+        ctypes.c_int,
+    ]
+    bridge.llama_bridge_create_context.restype = ctypes.c_void_p
+
+
+    bridge.llama_bridge_free_context.argtypes = [
+        ctypes.c_void_p,
+    ]
+    bridge.llama_bridge_free_context.restype = None
+
+
+    bridge.llama_bridge_decode_prompt.argtypes = [
+        ctypes.c_void_p,
+        ctypes.POINTER(ctypes.c_int),
+        ctypes.c_int,
+    ]
+    bridge.llama_bridge_decode_prompt.restype = ctypes.c_int
+
+
+    bridge.llama_bridge_sample_greedy.argtypes = [
+        ctypes.c_void_p,
+    ]
+    bridge.llama_bridge_sample_greedy.restype = ctypes.c_int
+
+
+    bridge.llama_bridge_token_to_piece.argtypes = [
+        ctypes.c_void_p,
+        ctypes.c_int,
+        ctypes.c_char_p,
+        ctypes.c_int,
+    ]
+    bridge.llama_bridge_token_to_piece.restype = ctypes.c_int
+
     return bridge
 
 
