@@ -76,6 +76,19 @@ def define_llama_bridge_signatures(bridge: ctypes.CDLL) -> ctypes.CDLL:
     ]
     bridge.llama_bridge_token_to_piece.restype = ctypes.c_int
 
+    bridge.llama_bridge_decode_one.argtypes = [
+        ctypes.c_void_p,
+        ctypes.c_int,
+    ]
+    bridge.llama_bridge_decode_one.restype = ctypes.c_int
+
+
+    bridge.llama_bridge_is_eog.argtypes = [
+        ctypes.c_void_p,
+        ctypes.c_int,
+    ]
+    bridge.llama_bridge_is_eog.restype = ctypes.c_bool
+
     return bridge
 
 

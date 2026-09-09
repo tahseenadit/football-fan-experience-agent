@@ -8,7 +8,7 @@ if str(_AI_DIR) not in sys.path:
     sys.path.insert(0, str(_AI_DIR))
 
 from config.config import LLAMA_LIBRARY_PATH, LLAMA_BRIDGE_PATH, MODEL_PATH
-from config.model_config.llama import MAX_TOKENS, CONTEXT_SIZE
+from config.model_config.llama import MAX_TOKENS, CONTEXT_SIZE, MAX_NEW_TOKENS
 from utils.llama_utils import define_llama_bridge_signatures, init_llama
 from utils.prompts.llama import prompt
 
@@ -114,40 +114,69 @@ if decode_result != 0:
 print("Prompt decoded by neural network.")
 
 # -------------------------
-# Choose next token
+# Generate multiple tokens
 # -------------------------
 
-next_token = llama_bridge.llama_bridge_sample_greedy(
-    ctx
-)
+generated_text = ""
 
-print(f"Next token ID: {next_token}")
+for _ in range(MAX_NEW_TOKENS):
 
-
-# -------------------------
-# Convert token back to text
-# -------------------------
-
-piece_buffer = ctypes.create_string_buffer(256)
-
-piece_length = llama_bridge.llama_bridge_token_to_piece(
-    model,
-    next_token,
-    piece_buffer,
-    len(piece_buffer),
-)
-
-if piece_length < 0:
-    raise RuntimeError(
-        f"Token piece buffer too small: {-piece_length}"
+    # 1. Sample from the logits produced
+    #    by the most recent llama_decode()
+    next_token = llama_bridge.llama_bridge_sample_greedy(
+        ctx
     )
 
-piece = piece_buffer.raw[:piece_length].decode(
-    "utf-8",
-    errors="replace",
-)
+    # 2. Stop if model generated an
+    #    end-of-generation token
+    if llama_bridge.llama_bridge_is_eog(
+        model,
+        next_token,
+    ):
+        break
 
-print(f"Next token text: {piece!r}")
+    # 3. Convert token ID → text
+    piece_buffer = ctypes.create_string_buffer(256)
+
+    piece_length = llama_bridge.llama_bridge_token_to_piece(
+        model,
+        next_token,
+        piece_buffer,
+        len(piece_buffer),
+    )
+
+    if piece_length < 0:
+        raise RuntimeError(
+            f"Piece buffer too small: {-piece_length}"
+        )
+
+    piece = piece_buffer.raw[:piece_length].decode(
+        "utf-8",
+        errors="replace",
+    )
+
+    generated_text += piece
+
+    print(
+        piece,
+        end="",
+        flush=True,
+    )
+
+    # 4. Feed the generated token back
+    #    through the model
+    decode_result = llama_bridge.llama_bridge_decode_one(
+        ctx,
+        next_token,
+    )
+
+    if decode_result != 0:
+        raise RuntimeError(
+            f"llama_decode failed: {decode_result}"
+        )
+
+print("\n\nGeneration complete.")
+print(f"Generated text: {generated_text!r}")
 
 # -------------------------
 # Cleanup

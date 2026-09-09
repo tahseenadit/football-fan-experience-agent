@@ -90,6 +90,24 @@ extern "C" {
         );
     }
 
+    int llama_bridge_decode_one(
+        llama_context * ctx,
+        int token
+    ) {
+        llama_token t = token;
+    
+        llama_batch batch =
+            llama_batch_get_one(
+                &t,
+                1
+            );
+    
+        return llama_decode(
+            ctx,
+            batch
+        );
+    }
+
     int llama_bridge_sample_greedy(
         llama_context * ctx
     ) {
@@ -132,6 +150,19 @@ extern "C" {
             buffer_size,
             0,
             true
+        );
+    }
+
+    bool llama_bridge_is_eog(
+        llama_model * model,
+        int token
+    ) {
+        const llama_vocab * vocab =
+            llama_model_get_vocab(model);
+    
+        return llama_vocab_is_eog(
+            vocab,
+            token
         );
     }
     

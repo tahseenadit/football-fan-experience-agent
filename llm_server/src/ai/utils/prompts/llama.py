@@ -1,1 +1,1 @@
-prompt = "Argentina is a country in South"
+prompt = "A goalkeeper is a player who is responsible for protecting the"
