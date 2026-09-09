@@ -8,7 +8,9 @@ if str(_AI_DIR) not in sys.path:
     sys.path.insert(0, str(_AI_DIR))
 
 from config.config import LLAMA_LIBRARY_PATH, LLAMA_BRIDGE_PATH, MODEL_PATH
+from config.model_config.llama import MAX_TOKENS
 from utils.llama_utils import define_llama_bridge_signatures, init_llama
+from utils.prompts.llama import prompt
 
 print(f"llama.cpp library: {LLAMA_LIBRARY_PATH}")
 
@@ -56,12 +58,33 @@ parameter_count = llama_bridge.llama_bridge_model_n_params(model)
 print(f"Model size: {size_bytes / 1024**2:.2f} MiB")
 print(f"Parameters: {parameter_count:,}")
 
+# -------------------------
+# Tokenize prompt
+# -------------------------
 
-input("\nPress Enter to unload the model...")
+token_buffer = (ctypes.c_int * MAX_TOKENS)()
+
+token_count = llama_bridge.llama_bridge_tokenize(
+    model,
+    prompt.encode("utf-8"),
+    token_buffer,
+    MAX_TOKENS
+)
+
+if token_count < 0:
+    raise RuntimeError("Failed to tokenize prompt")
+
+tokens = [token_buffer[i] for i in range(token_count)]
+
+print(f"\nText: {prompt}")
+print(f"Token count: {token_count}")
+print(f"Token IDs: {tokens}")
 
 # -------------------------
 # Cleanup
 # -------------------------
+
+input("\nPress Enter to unload the model...")
 
 llama_bridge.llama_bridge_model_free(model)
 llama_bridge.llama_bridge_shutdown()
