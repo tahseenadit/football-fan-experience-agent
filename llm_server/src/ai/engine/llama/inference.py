@@ -10,7 +10,6 @@ if str(_AI_DIR) not in sys.path:
 from config.config import LLAMA_LIBRARY_PATH, LLAMA_BRIDGE_PATH, MODEL_PATH
 from config.model_config.llama import MAX_TOKENS, CONTEXT_SIZE, MAX_NEW_TOKENS
 from utils.llama_utils import define_llama_bridge_signatures, init_llama
-from utils.prompts.llama import prompt
 
 
 class localLLM:
@@ -58,53 +57,155 @@ class localLLM:
         print(f"Model size: {size_bytes / 1024**2:.2f} MiB")
         print(f"Parameters: {parameter_count:,}")
 
-        def generate(self, prompt: str) -> str:
-            # -------------------------
-            # Tokenize prompt
-            # -------------------------
+    def generate(self, prompt: str) -> str:
+        # -------------------------
+        # Tokenize prompt
+        # -------------------------
 
-            token_buffer = (ctypes.c_int * MAX_TOKENS)()
+        # First attempt with no output buffer.
+        #
+        # llama_tokenize() will return:
+        #
+        #   -N
+        #
+        # where N is the number of tokens required.
 
-            token_count = self.llama_bridge.llama_bridge_tokenize(
-                self.model,
-                prompt.encode("utf-8"),
-                token_buffer,
-                MAX_TOKENS
+        required = self.llama_bridge.llama_bridge_tokenize(
+            self.model,
+            prompt.encode("utf-8"),
+            None,
+            0,
+        )
+
+        if required >= 0:
+            raise RuntimeError(
+                f"Unexpected tokenization result: {required}"
             )
 
-            if token_count < 0:
-                raise RuntimeError("Failed to tokenize prompt")
+        required = -required
 
-            tokens = [token_buffer[i] for i in range(token_count)]
+        print(f"Required token capacity: {required}")
 
-            print(f"\nText: {prompt}")
-            print(f"Token count: {token_count}")
-            print(f"Token IDs: {tokens}")
 
-            # -------------------------
-            # Create inference context
-            # -------------------------
+        # Now allocate exactly enough memory.
 
-            context_size = CONTEXT_SIZE
+        token_buffer = (ctypes.c_int * required)()
 
-            ctx = self.llama_bridge.llama_bridge_create_context(
-                self.model,
-                context_size,
+
+        token_count = self.llama_bridge.llama_bridge_tokenize(
+            self.model,
+            prompt.encode("utf-8"),
+            token_buffer,
+            required,
+        )
+
+        if token_count < 0:
+            raise RuntimeError(
+                f"Tokenization failed. Required {-token_count} tokens."
             )
 
-            if not ctx:
-                raise RuntimeError("Failed to create llama context")
+        # -------------------------
+        # Create inference context
+        # -------------------------
 
-            print("\nContext created.")
+        context_size = CONTEXT_SIZE
 
-            # -------------------------
-            # Run the transformer
-            # -------------------------
+        required_context_size = (
+            token_count
+            + MAX_NEW_TOKENS
+        )
 
-            decode_result = self.llama_bridge.llama_bridge_decode_prompt(
+        if required_context_size > CONTEXT_SIZE:
+            raise RuntimeError(
+                f"Context too small. "
+                f"Prompt={token_count}, "
+                f"generation={MAX_NEW_TOKENS}, "
+                f"required={required_context_size}, "
+                f"configured={CONTEXT_SIZE}"
+            )
+
+        ctx = self.llama_bridge.llama_bridge_create_context(
+            self.model,
+            context_size,
+        )
+
+        if not ctx:
+            raise RuntimeError("Failed to create llama context")
+
+        print("\nContext created.")
+
+        # -------------------------
+        # Run the transformer
+        # -------------------------
+
+        decode_result = self.llama_bridge.llama_bridge_decode_prompt(
+            ctx,
+            token_buffer,
+            token_count,
+        )
+
+        if decode_result != 0:
+            raise RuntimeError(
+                f"llama_decode failed: {decode_result}"
+            )
+
+        print("Prompt decoded by neural network.")
+
+        # -------------------------
+        # Generate multiple tokens
+        # -------------------------
+
+        generated_text = ""
+
+        for _ in range(MAX_NEW_TOKENS):
+
+            # 1. Sample from the logits produced
+            #    by the most recent llama_decode()
+            next_token = self.llama_bridge.llama_bridge_sample_greedy(
+                ctx
+            )
+
+            # 2. Stop if model generated an
+            #    end-of-generation token
+            if self.llama_bridge.llama_bridge_is_eog(
+                self.model,
+                next_token,
+            ):
+                break
+
+            # 3. Convert token ID → text
+            piece_buffer = ctypes.create_string_buffer(256)
+
+            piece_length = self.llama_bridge.llama_bridge_token_to_piece(
+                self.model,
+                next_token,
+                piece_buffer,
+                len(piece_buffer),
+            )
+
+            if piece_length < 0:
+                raise RuntimeError(
+                    f"Piece buffer too small: {-piece_length}"
+                )
+
+            piece = piece_buffer.raw[:piece_length].decode(
+                "utf-8",
+                errors="replace",
+            )
+
+            generated_text += piece
+
+            print(
+                piece,
+                end="",
+                flush=True,
+            )
+
+            # 4. Feed the generated token back
+            #    through the model
+            decode_result = self.llama_bridge.llama_bridge_decode_one(
                 ctx,
-                token_buffer,
-                token_count,
+                next_token,
             )
 
             if decode_result != 0:
@@ -112,81 +213,17 @@ class localLLM:
                     f"llama_decode failed: {decode_result}"
                 )
 
-            print("Prompt decoded by neural network.")
+        print("\n\nGeneration complete.")
+        print(f"Generated text: {generated_text!r}")
 
-            # -------------------------
-            # Generate multiple tokens
-            # -------------------------
+        self.llama_bridge.llama_bridge_free_context(ctx)
+        return generated_text
+    
+    def close(self):
+        # -------------------------
+        # Cleanup
+        # -------------------------
+        self.llama_bridge.llama_bridge_model_free(self.model)
+        self.llama_bridge.llama_bridge_shutdown()
 
-            generated_text = ""
-
-            for _ in range(MAX_NEW_TOKENS):
-
-                # 1. Sample from the logits produced
-                #    by the most recent llama_decode()
-                next_token = self.llama_bridge.llama_bridge_sample_greedy(
-                    ctx
-                )
-
-                # 2. Stop if model generated an
-                #    end-of-generation token
-                if self.llama_bridge.llama_bridge_is_eog(
-                    self.model,
-                    next_token,
-                ):
-                    break
-
-                # 3. Convert token ID → text
-                piece_buffer = ctypes.create_string_buffer(256)
-
-                piece_length = self.llama_bridge.llama_bridge_token_to_piece(
-                    self.model,
-                    next_token,
-                    piece_buffer,
-                    len(piece_buffer),
-                )
-
-                if piece_length < 0:
-                    raise RuntimeError(
-                        f"Piece buffer too small: {-piece_length}"
-                    )
-
-                piece = piece_buffer.raw[:piece_length].decode(
-                    "utf-8",
-                    errors="replace",
-                )
-
-                generated_text += piece
-
-                print(
-                    piece,
-                    end="",
-                    flush=True,
-                )
-
-                # 4. Feed the generated token back
-                #    through the model
-                decode_result = self.llama_bridge.llama_bridge_decode_one(
-                    ctx,
-                    next_token,
-                )
-
-                if decode_result != 0:
-                    raise RuntimeError(
-                        f"llama_decode failed: {decode_result}"
-                    )
-
-            print("\n\nGeneration complete.")
-            print(f"Generated text: {generated_text!r}")
-
-            return generated_text
-        
-        def close(self):
-            # -------------------------
-            # Cleanup
-            # -------------------------
-            self.llama_bridge.llama_bridge_free_context(self.ctx)
-            self.llama_bridge.llama_bridge_model_free(self.model)
-            self.llama_bridge.llama_bridge_shutdown()
-
-            print("\nModel unloaded.")
+        print("\nModel unloaded.")

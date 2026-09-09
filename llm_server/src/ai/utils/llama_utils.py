@@ -1,6 +1,7 @@
 import subprocess
 from pathlib import Path
 import ctypes
+import json
 
 
 def find_llama_library() -> str:
@@ -95,3 +96,16 @@ def define_llama_bridge_signatures(bridge: ctypes.CDLL) -> ctypes.CDLL:
 def init_llama(bridge: ctypes.CDLL) -> ctypes.CDLL:
     bridge.llama_bridge_init()
     return bridge
+
+def extract_json(response: str) -> dict:
+    start = response.find("{")
+    end = response.rfind("}")
+
+    if start == -1 or end == -1:
+        raise RuntimeError(
+            f"No JSON object found in model response:\n{response}"
+        )
+
+    json_text = response[start:end + 1]
+
+    return json.loads(json_text)

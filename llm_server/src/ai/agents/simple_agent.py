@@ -11,6 +11,8 @@ if str(_AI_DIR) not in sys.path:
 from config.config import MODEL_PATH
 from skills.tools.tools import TOOLS
 from engine.llama.inference import localLLM
+from utils.prompts.llama import SYSTEM_PROMPT
+from utils.llama_utils import extract_json
 
 def run_agent(
     llm: localLLM,
@@ -35,7 +37,7 @@ ASSISTANT:
         print("LLM OUTPUT:")
         print(response)
 
-        decision = json.loads(response)
+        decision = extract_json(response)
 
         # -----------------------------
         # Normal answer
