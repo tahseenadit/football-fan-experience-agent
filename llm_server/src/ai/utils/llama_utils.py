@@ -32,6 +32,15 @@ def define_llama_bridge_signatures(bridge: ctypes.CDLL) -> ctypes.CDLL:
     bridge.llama_bridge_shutdown.argtypes = []
     bridge.llama_bridge_shutdown.restype = None
 
+    bridge.llama_bridge_tokenize.argtypes = [
+        ctypes.c_void_p,          # model
+        ctypes.c_char_p,          # text
+        ctypes.POINTER(ctypes.c_int),  # output token array
+        ctypes.c_int,             # max tokens
+    ]
+
+    bridge.llama_bridge_tokenize.restype = ctypes.c_int
+
     return bridge
 
 
