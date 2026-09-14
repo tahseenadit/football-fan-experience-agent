@@ -278,18 +278,20 @@ TOOL RESULT:
     ensure_ascii=False,
 )}
 
-Continue the given task by identifying the next action to take using the TOOL RESULT to accomplish the task.
+Look at the tool result. It is the last taken action.
+If the tool result is the final result of the task, call action="answer" and return the result.
+Otherwise, continue the given task by identifying the next action to take using the TOOL RESULT to accomplish the task.
 
 Rules:
 - You can only take one single action per turn.
 - If success is false, the tool failed.
-- If success is true, use the returned result.
+- If success is true, use the returned result if needed by the next action.
 - Local file path can be anything, it can even be just the filename.
 - Do not take the argument name by heart. Focus on which action to take next and what values to pass as arguments from the TOOL RESULT.
 
-wrong assumption:
+WRONG ASSUMPTION:
 The user has requested to identify the text in the local image file path 'test.png'. However, the user has not provided the actual image file path.
-right assumption:
+RIGHT ASSUMPTION:
 The user has provided the image file path as 'test.png'. It can be used if needed by the next action.
 
 ASSISTANT:
