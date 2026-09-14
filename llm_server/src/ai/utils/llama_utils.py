@@ -165,15 +165,21 @@ def extract_json(response: str) -> dict:
         Decoded object, expected to contain ``action`` and related fields.
 
     Raises:
-        RuntimeError: no ``{`` or no ``}`` in ``response``.
+        RuntimeError: no ``{`` in ``response``, or the object was truncated
+            before a closing ``}`` (often ``MAX_NEW_TOKENS``).
         json.JSONDecodeError: the slice is not valid JSON.
     """
     start = response.find("{")  # index of the first opening brace, or -1
     end = response.rfind("}")  # index of the last closing brace, or -1
 
-    if start == -1 or end == -1:  # model never opened or never closed an object
+    if start == -1:  # no object started
         raise RuntimeError(
             f"No JSON object found in model response:\n{response}"
+        )
+
+    if end == -1 or end < start:  # opened `{` but generation stopped before `}`
+        raise RuntimeError(
+            f"Truncated JSON in model response (hit MAX_NEW_TOKENS?):\n{response}"
         )
 
     json_text = response[start:end + 1]  # inclusive slice of the candidate object

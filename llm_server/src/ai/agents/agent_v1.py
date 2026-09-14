@@ -14,6 +14,19 @@ from engine.llama.inference import localLLM
 from utils.prompts.llama import SYSTEM_PROMPT
 from utils.llama_utils import extract_json
 
+
+def _usable_tool_arguments(arguments) -> dict:
+    """Drop schema fragments the model copied from TOOLS_DESCRIPTIONS."""
+    if not isinstance(arguments, dict):
+        return {}
+    usable = {}
+    for key, value in arguments.items():
+        if isinstance(value, dict) and "type" in value and "description" in value:
+            continue
+        usable[key] = value
+    return usable
+
+
 def run_agent(
     llm: localLLM,
     user_message: str,
@@ -31,60 +44,56 @@ ASSISTANT:
         # -----------------------------
         # Ask the LLM what to do
         # -----------------------------
-
+        print(conversation)
         response = llm.generate(conversation)
 
         print("LLM OUTPUT:")
         print(response)
 
+        # Return if response is empty
+        if not response:
+            return "No response from the LLM. Last conversation: " + conversation
+
         decision = extract_json(response)
+        action = decision.get("action")
 
         # -----------------------------
         # Normal answer
         # -----------------------------
 
-        if decision["action"] == "answer":
+        if action == "answer":
             return decision["content"]
 
         # -----------------------------
         # Tool call
         # -----------------------------
+        # Canonical: {"action": "tool", "name": "get_user_input", ...}
+        # Small models often emit {"action": "get_user_input", ...} instead.
 
-        if decision["action"] == "tool":
-            tool_name = decision["name"]
-            tool_arguments = decision.get(
-                "arguments",
-                {},
+        tool_name = decision.get("name") if action == "tool" else action
+        tool_function = TOOLS.get(tool_name)
+        if tool_function:
+            tool_arguments = _usable_tool_arguments(
+                decision.get("arguments", {}),
             )
-
-            # Find the tool function
-            tool_function = TOOLS.get(tool_name)
-            if not tool_function:
-                raise ValueError(f"Tool {tool_name} not found")
-
-            # Call the tool function
             tool_result = tool_function(**tool_arguments)
-
-            print(
-                f"TOOL RESULT: {tool_result}"
-            )
 
             # -----------------------------
             # Give result back to LLM
             # -----------------------------
             conversation += f"""
-    {response}
+    previous LLM response: {response}
 
     TOOL RESULT:
     {tool_result}
 
-    Now decide what to do next.
+    Now decide what to do next. If you think you have enough information, answer the user.
 
     ASSISTANT:
     """
             continue
-        
-        raise ValueError(f"Invalid action: {decision['action']}")
+
+        raise ValueError(f"Invalid action: {action}")
 
 def main():
     llm = localLLM()
@@ -92,7 +101,7 @@ def main():
     try:
         result = run_agent(
             llm,
-            "Please run the simple test.",
+            "Ask the user for the image URI input.",
         )
 
         print("\nFINAL ANSWER:")

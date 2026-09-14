@@ -5,3 +5,5 @@ AI_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) # llm_serve
 MODEL_PATH = os.path.join(AI_DIR, "models/qwen3.5-0.8b/Qwen3.5-0.8B-Q4_0.gguf")
 LLAMA_LIBRARY_PATH = find_llama_library()
 LLAMA_BRIDGE_PATH = os.path.join(AI_DIR, "engine/llama/libllama_bridge.dylib")
+
+ASSET_DIR = os.path.join(os.path.dirname(os.path.dirname(AI_DIR)), "assets")
