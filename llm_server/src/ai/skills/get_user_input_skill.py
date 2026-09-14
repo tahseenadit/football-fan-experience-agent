@@ -1,5 +1,13 @@
-def get_user_input(prompt: str = "Enter your input: ") -> str:
+def get_user_input(
+    prompt: str = "Enter your input: "
+) -> dict:
     """
-    Get user input from the terminal
+    Ask the human for input through the terminal.
     """
-    return input(prompt)
+
+    value = input(prompt)
+
+    return {
+        "success": True,
+        "result": value.strip(),
+    }

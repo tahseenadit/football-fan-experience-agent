@@ -8,8 +8,8 @@ The companion transcript is [`local_llm_to_agent_textbook.pdf`](local_llm_to_age
 
 Start with [00-how-to-read-this-textbook.md](00-how-to-read-this-textbook.md). Then either:
 
-- **Theory first:** chapters 01, 06, 07, 10, 11
-- **Code first:** chapters 02 → 05 → 08 → 09 → 12
+- **Theory first:** chapters 01, 06, 07, 10, 11, 13
+- **Code first:** chapters 02 → 05 → 08 → 09 → 12 → 13
 
 Every source file has a matching line-by-line chapter. Theory chapters explain *why* those lines exist.
 
@@ -30,12 +30,16 @@ Every source file has a matching line-by-line chapter. Theory chapters explain *
 | 10 | [10-structured-output-and-think-blocks.md](10-structured-output-and-think-blocks.md) | JSON parsing, `<think>` origin |
 | 11 | [11-memory-cpu-and-lifecycle.md](11-memory-cpu-and-lifecycle.md) | RAM, CPU, GPU offload, what frees what |
 | 12 | [12-build-system.md](12-build-system.md) | `build_bridge.sh` |
+| 13 | [13-agent-runtime-guarantees.md](13-agent-runtime-guarantees.md) | LLM vs runtime authority; `agent_v1` → `v1_0_1` → `v1_0_2` line by line |
 
 ## Source files documented
 
 ```
 llm_server/src/ai/
 ├── agents/simple_agent.py          → 08
+├── agents/agent_v1.py              → 13
+├── agents/agent_v1_0_1.py          → 13
+├── agents/agent_v1_0_2.py          → 13
 ├── config/config.py                → 02
 ├── config/model_config/llama.py    → 02
 ├── engine/llama/bridge.cpp         → 04

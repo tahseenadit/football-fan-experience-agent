@@ -49,7 +49,11 @@ TOOLS_DESCRIPTIONS = {
         "arguments": {
             "document_image_uri": {
                 "type": "string",
-                "description": "The URI of the image of the Swedish document.",
+                "description": (
+                    "A real local file path that must already have been "
+                    "provided by the human through get_user_input. "
+                    "Never invent this value."
+                ),
             },
         },
     },

@@ -76,8 +76,19 @@ ASSISTANT:
             tool_arguments = _usable_tool_arguments(
                 decision.get("arguments", {}),
             )
-            
-            tool_result = tool_function(**tool_arguments)
+
+            try:
+                result = tool_function(**tool_arguments)
+
+                tool_result = {
+                    "success": True,
+                    "result": result,
+                }
+            except Exception as e:
+                tool_result = {
+                    "success": False,
+                    "error": str(e),
+                }
 
             # -----------------------------
             # Give result back to LLM

@@ -183,5 +183,4 @@ def extract_json(response: str) -> dict:
         )
 
     json_text = response[start:end + 1]  # inclusive slice of the candidate object
-
     return json.loads(json_text)  # dict / list; run_agent expects a dict with "action"

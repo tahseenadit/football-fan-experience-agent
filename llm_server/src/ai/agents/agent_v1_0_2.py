@@ -31,6 +31,7 @@ def run_agent(
     llm: localLLM,
     user_message: str,
 ) -> str:
+    agent_state = {}
     conversation = f"""
 {SYSTEM_PROMPT}
 
@@ -74,24 +75,53 @@ ASSISTANT:
         tool_function = TOOLS.get(tool_name)
         if tool_function:
             tool_arguments = _usable_tool_arguments(
-                decision.get("arguments", {}),
+                decision.get(
+                    "arguments",
+                    {},
+                ),
             )
-            
-            tool_result = tool_function(**tool_arguments)
 
-            # -----------------------------
-            # Give result back to LLM
-            # -----------------------------
+            try:
+
+                result = tool_function(
+                    **tool_arguments
+                )
+
+                tool_result = {
+                    "success": True,
+                    "tool": tool_name,
+                    "result": result,
+                }
+
+            except Exception as exc:
+
+                tool_result = {
+                    "success": False,
+                    "tool": tool_name,
+                    "error": str(exc),
+                }
+
+
             conversation += f"""
-    previous LLM response: {response}
 
-    TOOL RESULT:
-    {tool_result}
+        Previous LLM response:
+        {response}
 
-    Now decide what to do next. If you think you have enough information, answer the user.
+        TOOL RESULT:
+        {json.dumps(tool_result, indent=2)}
 
-    ASSISTANT:
-    """
+        Now decide what to do next.
+
+        If success is true, use the tool result to continue the task.
+
+        If success is false because required information is missing,
+        use another appropriate tool to obtain that information.
+
+        Do not invent file paths, URIs, user input, or tool results.
+
+        ASSISTANT:
+        """
+
             continue
 
         raise ValueError(f"Invalid action: {action}")
