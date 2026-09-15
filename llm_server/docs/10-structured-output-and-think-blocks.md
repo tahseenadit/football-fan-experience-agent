@@ -71,6 +71,8 @@ An instruction in the prompt is **not a type system**. A 0.8B model trained with
 
 ## 3. `extract_json` — current parser
 
+**Update:** the live code no longer uses `rfind("}")` + `json.loads` on the whole slice. That swallowed two JSON objects when ChatML generation continued past `<|im_end|>` (`Extra data`). See [Chapter 14](14-qwen-chatml-and-one-json-per-turn.md): `JSONDecoder().raw_decode` from the first `{` parses **one** object. The rest of this section is the original `find` / `rfind` design from the first agent.
+
 ```python
 def extract_json(response: str) -> dict:
     start = response.find("{")

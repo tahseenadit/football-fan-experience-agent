@@ -4,12 +4,14 @@ This folder is the written reference for the Python + C++ stack under `llm_serve
 
 The companion transcript is [`local_llm_to_agent_textbook.pdf`](local_llm_to_agent_textbook.pdf). That PDF is a lossless record of the chat that built this stack. These markdown chapters turn that material, plus the current source files, into a textbook you can study file by file.
 
+Version-to-version product history: [`../CHANGELOG.md`](../CHANGELOG.md).
+
 ## How to read
 
 Start with [00-how-to-read-this-textbook.md](00-how-to-read-this-textbook.md). Then either:
 
-- **Theory first:** chapters 01, 06, 07, 10, 11, 13
-- **Code first:** chapters 02 → 05 → 08 → 09 → 12 → 13
+- **Theory first:** chapters 01, 06, 07, 10, 11, 13, 14
+- **Code first:** chapters 02 → 05 → 08 → 09 → 12 → 13 → 14
 
 Every source file has a matching line-by-line chapter. Theory chapters explain *why* those lines exist.
 
@@ -31,6 +33,7 @@ Every source file has a matching line-by-line chapter. Theory chapters explain *
 | 11 | [11-memory-cpu-and-lifecycle.md](11-memory-cpu-and-lifecycle.md) | RAM, CPU, GPU offload, what frees what |
 | 12 | [12-build-system.md](12-build-system.md) | `build_bridge.sh` |
 | 13 | [13-agent-runtime-guarantees.md](13-agent-runtime-guarantees.md) | LLM vs runtime authority; `agent_v1` → `v1_0_1` → `v1_0_2` line by line |
+| 14 | [14-qwen-chatml-and-one-json-per-turn.md](14-qwen-chatml-and-one-json-per-turn.md) | ChatML `messages`, `<\|im_end\|>` stop, `raw_decode` first JSON, `agent_v2` |
 
 ## Source files documented
 
@@ -40,14 +43,16 @@ llm_server/src/ai/
 ├── agents/agent_v1.py              → 13
 ├── agents/agent_v1_0_1.py          → 13
 ├── agents/agent_v1_0_2.py          → 13
+├── agents/agent_v2.py              → 14
 ├── config/config.py                → 02
-├── config/model_config/llama.py    → 02
+├── config/model_config/llama.py    → 02, 14
 ├── engine/llama/bridge.cpp         → 04
 ├── engine/llama/build_bridge.sh    → 12
 ├── engine/llama/inference.py       → 05
 ├── skills/simple_skill.py          → 09
 ├── skills/tools/tools.py           → 09
-├── utils/llama_utils.py            → 03
+├── utils/llama_utils.py            → 03, 14
+├── utils/agent_utils.py            → 14
 └── utils/prompts/llama.py          → 02
 ```
 
