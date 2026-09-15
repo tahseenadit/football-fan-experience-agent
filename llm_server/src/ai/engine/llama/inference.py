@@ -193,6 +193,9 @@ class localLLM:
                 errors="replace",
             )
 
+            if piece == "<|im_end|>":
+                break
+            
             generated_text += piece
 
             print(

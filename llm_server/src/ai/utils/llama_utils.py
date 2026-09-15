@@ -170,17 +170,11 @@ def extract_json(response: str) -> dict:
         json.JSONDecodeError: the slice is not valid JSON.
     """
     start = response.find("{")  # index of the first opening brace, or -1
-    end = response.rfind("}")  # index of the last closing brace, or -1
 
     if start == -1:  # no object started
         raise RuntimeError(
             f"No JSON object found in model response:\n{response}"
         )
 
-    if end == -1 or end < start:  # opened `{` but generation stopped before `}`
-        raise RuntimeError(
-            f"Truncated JSON in model response (hit MAX_NEW_TOKENS?):\n{response}"
-        )
-
-    json_text = response[start:end + 1]  # inclusive slice of the candidate object
-    return json.loads(json_text)  # dict / list; run_agent expects a dict with "action"
+    obj, _ = json.JSONDecoder().raw_decode(response[start:])
+    return obj
