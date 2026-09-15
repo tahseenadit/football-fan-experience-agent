@@ -97,3 +97,25 @@ def execute_tool(
             "success": False,
             "error": str(exc),
         }
+
+def apply_chat_template(
+    messages: list,
+    add_generation_prompt: bool = True,
+    enable_thinking: bool = False
+) -> str:
+    parts = []
+    for message in messages:
+        role = message["role"]
+        content = message["content"]
+        parts.append(
+            f"<|im_start|>{role}\n{content}<|im_end|>\n"
+        )
+
+    if add_generation_prompt:
+        parts.append("<|im_start|>assistant\n")
+        if enable_thinking:
+            parts.append("<think>\n")
+        else:
+            parts.append("<think>\n\n</think>\n\n")
+    
+    return "".join(parts)
