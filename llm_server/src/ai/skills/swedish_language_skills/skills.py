@@ -91,3 +91,9 @@ def parse_text_from_image_of_swedish_document(
         "success": True,
         "text": text,
     }
+
+def parse_sections_from_text(text: str) -> list[str]:
+    """
+    Parse sections from text.
+    """
+    return text.split("\n\n")
