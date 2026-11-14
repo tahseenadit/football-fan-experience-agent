@@ -1,2 +1,2 @@
 def main():
-    pass # Does nothing
+    pass # Does nothing here
